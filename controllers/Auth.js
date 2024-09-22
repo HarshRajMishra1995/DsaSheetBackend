@@ -45,13 +45,11 @@ const SignUp = async (req, res) => {
 const Login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     // Check if the user exists
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email: email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-
     // Compare the provided password with the hashed password in the database
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {

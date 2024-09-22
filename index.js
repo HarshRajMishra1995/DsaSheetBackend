@@ -43,7 +43,7 @@ router.post("/login", async (req, res) => {
   // Check password, return JWT token if valid
 });
 
-app.use(mainRoutes);
+app.use(`/api/${process.env.API_VERSION}`, mainRoutes);
 
 server.listen(PORT, (err) => {
   if (NODE_ENV == "DEVELOPMENT") {
