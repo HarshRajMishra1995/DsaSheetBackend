@@ -104,8 +104,7 @@ const getSingleTopic = async (req, res) => {
 };
 
 const saveUserProgress = async (req, res) => {
-  const { userId, topicId, completed } = req.body;
-
+  const { userId, topicId, subtopicId, completed } = req.body;
   // Validate the required fields
   if (!userId || !topicId || typeof completed !== "boolean") {
     return res

@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const UserModel = require("../models/users");
+const TopicModel = require("../models/topics");
 
 const SignUp = async (req, res) => {
   try {
@@ -75,7 +76,80 @@ const Login = async (req, res) => {
   }
 };
 
+const getUserProgress = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by ID
+    const user = await UserModel.findById(userId).populate("progress.topicId");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const populatedProgress = await Promise.all(
+      user.progress.map(async (progressItem) => {
+        // Find the topic that contains the subtopicId
+        const topic = await TopicModel.findOne({
+          "chapters.subtopics._id": progressItem.topicId,
+        });
+
+        if (topic) {
+          // Find the specific chapter and subtopic within the topic
+          const chapter = topic.chapters.find((chap) =>
+            chap.subtopics.some(
+              (sub) => sub._id.toString() === progressItem.topicId
+            )
+          );
+
+          const subtopic = chapter.subtopics.find(
+            (sub) => sub._id.toString() === progressItem.topicId
+          );
+
+          // Return the topic, chapter, and subtopic details along with progress
+          return {
+            topicId: topic._id,
+            topicName: topic.name, // Topic name
+            chapterName: chapter.name, // Chapter name
+            subtopicProblem: subtopic.problem, // Subtopic problem name
+            tutorialLink: subtopic.tutorialLink,
+            leetcodeLink: subtopic.leetcodeLink,
+            articleLink: subtopic.articleLink,
+            completed: progressItem.completed,
+          };
+        } else {
+          return null;
+        }
+      })
+    );
+    let seenTopics = new Set();
+
+    let progressDetailsForProfile = populatedProgress
+      .filter((item) => {
+        // Check if the topicId has already been added
+        if (!seenTopics.has(item.topicId.toString())) {
+          seenTopics.add(item.topicId.toString()); // Mark as seen
+          return true; // Keep this item
+        }
+        return false; // Filter out duplicates
+      })
+      .map((item) => ({
+        topicId: item.topicId,
+        topicName: item.topicName,
+        completed: item.completed,
+      }));
+    return res.status(200).json({
+      progress: user.progress,
+      topicCompletedDetails: progressDetailsForProfile,
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Failed to retrieve user progress" });
+  }
+};
+
 module.exports = {
   SignUp,
   Login,
+  getUserProgress,
 };
